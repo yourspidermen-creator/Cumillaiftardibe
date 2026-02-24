@@ -22,7 +22,7 @@ interface MapProps {
 
 export function IftarMap({ mosques }: MapProps) {
   return (
-    <div className="w-full h-[400px] rounded-xl overflow-hidden shadow-lg border border-emerald-100 z-0">
+    <div className="w-full h-[400px] rounded-xl overflow-hidden shadow-lg border border-zinc-100 z-0">
       <MapContainer 
         center={[23.4606, 91.1809]} 
         zoom={13} 
@@ -37,8 +37,8 @@ export function IftarMap({ mosques }: MapProps) {
           <Marker key={mosque.id} position={[mosque.latitude, mosque.longitude]}>
             <Popup>
               <div className="font-sans">
-                <h3 className="font-bold text-emerald-800">{mosque.name}</h3>
-                <p className="text-sm text-gray-600">{mosque.location}</p>
+                <h3 className="font-bold text-zinc-800">{mosque.name}</h3>
+                <p className="text-sm text-zinc-600">{mosque.location}</p>
                 {mosque.has_biryani && (
                   <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
                     বিরিয়ানি আছে! 🍗
