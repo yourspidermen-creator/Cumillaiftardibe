@@ -43,7 +43,7 @@ function App() {
         .from('mosques')
         .select('*');
 
-      if (mosqueError) console.warn('Mosque table not found yet, skipping DB mosques...');
+      if (mosqueError) console.warn('Mosque fetch warning:', mosqueError);
       
       let allMosques = [...INITIAL_MOSQUES];
       if (dbMosques && dbMosques.length > 0) {
@@ -127,21 +127,9 @@ function App() {
         }])
         .select();
 
-      // যদি ডাটাবেস টেবিল না থাকে, তবে ক্র্যাশ না করে লোকাল স্টেটে সেভ করবে
       if (error) {
-        console.warn('Supabase Insert Error (Table missing):', error);
-        
-        const temporaryMosque = {
-          id: Date.now().toString(), // লোকাল সাময়িক আইডি
-          name: mosqueData.name,
-          location: mosqueData.location,
-          true_count: 0,
-          fake_count: 0
-        };
-        
-        setMosques(prev => [temporaryMosque, ...prev]);
-        setIsModalOpen(false); 
-        alert('সতর্কতা: ডাটাবেসে mosques টেবিল নেই! এটি শুধু সাময়িকভাবে আপনার স্ক্রিনে যোগ করা হয়েছে।');
+        console.error('Supabase Insert Error:', error);
+        alert('ডাটাবেসে সেভ করতে সমস্যা হয়েছে!');
         return;
       }
 
@@ -159,11 +147,11 @@ function App() {
     }
   };
 
-  // বেশি ভোট পাওয়া কার্ড উপরে দেখানোর লজিক
+  // ক্র্যাশ এড়াতে (m.name || '') ব্যবহার করা হয়েছে
   const filteredMosques = mosques
     .filter(m => 
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.location.toLowerCase().includes(searchTerm.toLowerCase())
+      (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (m.location || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       const scoreA = (a.true_count || 0) - (a.fake_count || 0);
@@ -234,7 +222,8 @@ function App() {
               ইফতার ম্যাপ
             </h2>
           </div>
-          <IftarMap mosques={filteredMosques} />
+          {/* এখানে ফিল্টার করে ম্যাপে শুধু সেই মসজিদগুলো পাঠানো হচ্ছে যেগুলোর কোঅর্ডিনেট আছে */}
+          <IftarMap mosques={filteredMosques.filter(m => m.lat && m.lng)} />
         </div>
       </section>
 
@@ -280,30 +269,4 @@ function App() {
                 </div>
                 <div>
                   <h4 className="font-bold text-lg">মইনুল ইসলাম</h4>
-                  <p className="text-zinc-400 text-xs uppercase">Moinul Islam</p>
-                </div>
-              </div>
-              <a 
-                href="https://www.facebook.com/yourspidermen"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-white text-zinc-900 py-3 rounded-lg font-bold hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                ফেসবুকে মেসেজ দিন →
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <AddMosqueModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onAdd={handleAddMosque}
-      />
-    </div>
-  );
-}
-
-export default App;
+                  <p className="text-zinc-400 text-
