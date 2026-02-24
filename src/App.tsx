@@ -43,7 +43,7 @@ function App() {
         .from('mosques')
         .select('*');
 
-      if (mosqueError) console.warn('Mosque fetch warning:', mosqueError);
+      if (mosqueError) console.warn('Mosque table not found yet, skipping DB mosques...');
       
       let allMosques = [...INITIAL_MOSQUES];
       if (dbMosques && dbMosques.length > 0) {
@@ -99,12 +99,17 @@ function App() {
     }));
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('votes')
         .insert([{ 
           mosque_id: String(mosqueId), 
           vote_type: type 
         }]);
+
+      if (error) {
+        console.error('Error saving vote:', error);
+        fetchData();
+      }
     } catch (err) {
       console.error('Error voting:', err);
     }
@@ -122,23 +127,43 @@ function App() {
         }])
         .select();
 
-      if (error) throw error;
+      // যদি ডাটাবেস টেবিল না থাকে, তবে ক্র্যাশ না করে লোকাল স্টেটে সেভ করবে
+      if (error) {
+        console.warn('Supabase Insert Error (Table missing):', error);
+        
+        const temporaryMosque = {
+          id: Date.now().toString(), // লোকাল সাময়িক আইডি
+          name: mosqueData.name,
+          location: mosqueData.location,
+          true_count: 0,
+          fake_count: 0
+        };
+        
+        setMosques(prev => [temporaryMosque, ...prev]);
+        setIsModalOpen(false); 
+        alert('সতর্কতা: ডাটাবেসে mosques টেবিল নেই! এটি শুধু সাময়িকভাবে আপনার স্ক্রিনে যোগ করা হয়েছে।');
+        return;
+      }
 
       if (data && data.length > 0) {
-        const newMosque = { ...data[0], true_count: 0, fake_count: 0 };
+        const newMosque = {
+          ...data[0],
+          true_count: 0,
+          fake_count: 0
+        };
         setMosques(prev => [newMosque, ...prev]);
         setIsModalOpen(false); 
       }
     } catch (error) {
       console.error('Error adding mosque:', error);
-      alert('তথ্য সেভ করা যায়নি। দয়া করে আবার চেষ্টা করুন।');
     }
   };
 
+  // বেশি ভোট পাওয়া কার্ড উপরে দেখানোর লজিক
   const filteredMosques = mosques
     .filter(m => 
-      (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (m.location || '').toLowerCase().includes(searchTerm.toLowerCase())
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.location.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       const scoreA = (a.true_count || 0) - (a.fake_count || 0);
@@ -174,10 +199,18 @@ function App() {
       <header className="bg-zinc-800 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-10"></div>
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10 text-center">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="inline-block p-4 bg-zinc-700/50 rounded-full mb-6 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="inline-block p-4 bg-zinc-700/50 rounded-full mb-6 backdrop-blur-sm"
+          >
             <Moon className="w-12 h-12 text-amber-400 fill-amber-400" />
           </motion.div>
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight">কুমিল্লা ইফতার ট্র্যাকার ২০২৬</h1>
+          
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight">
+            কুমিল্লা ইফতার ট্র্যাকার ২০২৬
+          </h1>
+
           <div className="max-w-xl mx-auto relative mt-8">
             <input
               type="text"
@@ -195,24 +228,37 @@ function App() {
 
       <section className="container mx-auto px-4 -mt-10 relative z-20 mb-12">
         <div className="bg-white p-4 rounded-2xl shadow-xl border border-zinc-100">
-          <h2 className="text-xl font-bold text-zinc-800 flex items-center gap-2 mb-4 px-2">
-            <MapPin className="w-5 h-5 text-zinc-600" /> ইফতার ম্যাপ
-          </h2>
-          <IftarMap mosques={filteredMosques.filter(m => m.lat && m.lng)} />
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h2 className="text-xl font-bold text-zinc-800 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-zinc-600" />
+              ইফতার ম্যাপ
+            </h2>
+          </div>
+          <IftarMap mosques={filteredMosques} />
         </div>
       </section>
 
       <section className="container mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-zinc-800">জনপ্রিয় ইফতার আয়োজন</h2>
-          <button onClick={() => setIsModalOpen(true)} className="bg-zinc-800 hover:bg-zinc-900 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2">
-            <Plus className="w-5 h-5" /> নতুন তথ্য যোগ করুন
+          <h2 className="text-2xl md:text-3xl font-bold text-zinc-800">
+            জনপ্রিয় ইফতার আয়োজন
+          </h2>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-zinc-800 hover:bg-zinc-900 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            নতুন তথ্য যোগ করুন
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredMosques.map((mosque) => (
-            <MosqueCard key={mosque.id} mosque={mosque} onVote={handleVote} />
+            <MosqueCard 
+              key={mosque.id} 
+              mosque={mosque} 
+              onVote={handleVote} 
+            />
           ))}
         </div>
       </section>
@@ -222,25 +268,40 @@ function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-2xl font-bold mb-2 text-amber-400">কুমিল্লা ইফতার ট্র্যাকার</h3>
-              <p className="text-zinc-400 max-w-md">আপনার ছোট একটি তথ্য হতে পারে অন্যের জন্য অনেক বড় সাহায্য।</p>
+              <p className="text-zinc-400 max-w-md">
+                আপনার ছোট একটি তথ্য হতে পারে অন্যের জন্য অনেক বড় সাহায্য।
+              </p>
             </div>
+            
             <div className="bg-zinc-800/50 p-6 rounded-xl border border-zinc-700/50">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center font-bold text-white text-xl">MI</div>
+                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center font-bold text-white text-xl">
+                  MI
+                </div>
                 <div>
                   <h4 className="font-bold text-lg">মইনুল ইসলাম</h4>
                   <p className="text-zinc-400 text-xs uppercase">Moinul Islam</p>
                 </div>
               </div>
-              <a href="https://www.facebook.com/yourspidermen" target="_blank" rel="noopener noreferrer" className="w-full bg-white text-zinc-900 py-3 rounded-lg font-bold hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2">
-                <MessageCircle className="w-5 h-5" /> ফেসবুকে মেসেজ দিন →
+              <a 
+                href="https://www.facebook.com/yourspidermen"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-white text-zinc-900 py-3 rounded-lg font-bold hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                ফেসবুকে মেসেজ দিন →
               </a>
             </div>
           </div>
         </div>
       </footer>
 
-      <AddMosqueModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={handleAddMosque} />
+      <AddMosqueModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onAdd={handleAddMosque}
+      />
     </div>
   );
 }
