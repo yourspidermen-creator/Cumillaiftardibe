@@ -49,8 +49,8 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-xl font-bold text-emerald-900 mb-1">{mosque.name}</h3>
-          <div className="flex items-center text-emerald-600 text-sm">
+          <h3 className="text-xl font-bold text-zinc-900 mb-1">{mosque.name}</h3>
+          <div className="flex items-center text-zinc-600 text-sm">
             <MapPin className="w-4 h-4 mr-1" />
             {mosque.location}
           </div>
@@ -59,7 +59,7 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
           "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1",
           mosque.has_biryani 
             ? "bg-amber-100 text-amber-800 border border-amber-200" 
-            : "bg-gray-100 text-gray-600 border border-gray-200"
+            : "bg-zinc-100 text-zinc-600 border border-zinc-200"
         )}>
           {mosque.has_biryani ? (
             <>বিরিয়ানি আছে! 🍗</>
@@ -79,12 +79,12 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
       )}
 
       <div className="mb-6">
-        <p className="text-xs text-gray-500 mb-2 font-medium">ইফতার মেনু</p>
+        <p className="text-xs text-zinc-500 mb-2 font-medium">ইফতার মেনু</p>
         <div className="flex flex-wrap gap-2">
           {mosque.menu_items.map((item, idx) => (
             <span 
               key={idx} 
-              className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full border border-emerald-100"
+              className="px-3 py-1 bg-zinc-100 text-zinc-700 text-xs rounded-full border border-zinc-200"
             >
               {item}
             </span>
@@ -92,7 +92,7 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between gap-3 pt-4 border-t border-zinc-100">
         <div className="flex gap-2">
           <button
             onClick={() => handleVote('true')}
@@ -102,8 +102,8 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
               hasVoted === 'true'
                 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                 : hasVoted
-                  ? "opacity-50 cursor-not-allowed bg-gray-50 text-gray-400"
-                  : "bg-white text-emerald-600 border-gray-200 hover:bg-emerald-50 hover:border-emerald-200"
+                  ? "opacity-50 cursor-not-allowed bg-zinc-50 text-zinc-400"
+                  : "bg-white text-emerald-600 border-zinc-200 hover:bg-emerald-50 hover:border-emerald-200"
             )}
           >
             <Check className="w-4 h-4" />
@@ -118,8 +118,8 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
               hasVoted === 'fake'
                 ? "bg-rose-100 text-rose-700 border-rose-200"
                 : hasVoted
-                  ? "opacity-50 cursor-not-allowed bg-gray-50 text-gray-400"
-                  : "bg-white text-rose-600 border-gray-200 hover:bg-rose-50 hover:border-rose-200"
+                  ? "opacity-50 cursor-not-allowed bg-zinc-50 text-zinc-400"
+                  : "bg-white text-rose-600 border-zinc-200 hover:bg-rose-50 hover:border-rose-200"
             )}
           >
             <X className="w-4 h-4" />
@@ -127,7 +127,7 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
           </button>
         </div>
 
-        <button className="p-2 text-gray-400 hover:text-emerald-600 transition-colors">
+        <button className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors">
           <MessageCircle className="w-5 h-5" />
         </button>
       </div>
@@ -136,7 +136,7 @@ export function MosqueCard({ mosque, onVote }: MosqueCardProps) {
         href={`https://www.google.com/maps/search/?api=1&query=${mosque.latitude},${mosque.longitude}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 w-full flex items-center justify-center gap-2 bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-900 transition-colors"
+        className="mt-4 w-full flex items-center justify-center gap-2 bg-zinc-800 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-zinc-900 transition-colors"
       >
         <MapPin className="w-4 h-4" />
         গুগল ম্যাপে দেখুন
