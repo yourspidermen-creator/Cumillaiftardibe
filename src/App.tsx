@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Search, Moon, MessageCircle, Menu } from 'lucide-react';
+import { MapPin, Search, Moon, MessageCircle, Plus } from 'lucide-react';
 import { Mosque, INITIAL_MOSQUES } from '@/data/mosques';
 import { IftarMap } from '@/components/IftarMap';
 import { MosqueCard } from '@/components/MosqueCard';
+import { AddMosqueModal } from '@/components/AddMosqueModal';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 function App() {
   const [mosques, setMosques] = useState<Mosque[]>(INITIAL_MOSQUES);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -44,9 +46,27 @@ function App() {
     }
 
     try {
-      // Fetch mosques if we had them in DB, but for now we use static list and just fetch votes
-      // In a real app, mosques would be in DB too.
-      // We will aggregate votes for each mosque.
+      // Fetch mosques from DB
+      const { data: dbMosques, error: mosqueError } = await supabase
+        .from('mosques')
+        .select('*');
+
+      if (mosqueError) throw mosqueError;
+
+      // Merge DB mosques with initial mosques if needed, or just use DB mosques
+      // For now, let's combine them, but prioritize DB mosques if IDs conflict
+      // Actually, let's just use DB mosques if available, otherwise fallback to initial
+      
+      let allMosques = [...INITIAL_MOSQUES];
+      if (dbMosques && dbMosques.length > 0) {
+        // If we have DB mosques, we should probably use them.
+        // But since we started with static data, let's merge.
+        // We'll filter out static mosques that might be duplicates if we decide to seed the DB.
+        // For simplicity in this hybrid state:
+        const dbMosqueIds = new Set(dbMosques.map(m => m.id));
+        const nonDuplicateInitial = INITIAL_MOSQUES.filter(m => !dbMosqueIds.has(m.id));
+        allMosques = [...dbMosques, ...nonDuplicateInitial];
+      }
       
       const { data: votes, error } = await supabase
         .from('votes')
@@ -64,7 +84,7 @@ function App() {
         else voteCounts[vote.mosque_id].fake++;
       });
 
-      setMosques(prev => prev.map(m => ({
+      setMosques(allMosques.map(m => ({
         ...m,
         true_count: voteCounts[m.id]?.true || 0,
         fake_count: voteCounts[m.id]?.fake || 0
@@ -90,46 +110,50 @@ function App() {
     }));
   };
 
+  const handleAddMosque = (newMosque: Mosque) => {
+    setMosques(prev => [newMosque, ...prev]);
+  };
+
   const filteredMosques = mosques.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-zinc-50 font-sans">
       {/* Top Banner */}
-      <div className="bg-emerald-900 text-white py-6 px-4 border-b border-emerald-800 relative overflow-hidden">
+      <div className="bg-zinc-900 text-white py-6 px-4 border-b border-zinc-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-5"></div>
         <div className="container mx-auto flex flex-col md:flex-row items-center gap-6 relative z-10">
-          <div className="bg-yellow-500/10 p-4 rounded-2xl flex-shrink-0 border border-yellow-500/20">
-            <Moon className="w-8 h-8 text-yellow-400 fill-yellow-400" />
+          <div className="bg-zinc-800 p-4 rounded-2xl flex-shrink-0 border border-zinc-700">
+            <Moon className="w-8 h-8 text-amber-400 fill-amber-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm md:text-base font-medium italic leading-relaxed text-emerald-100 text-center md:text-left">
+            <p className="text-sm md:text-base font-medium italic leading-relaxed text-zinc-300 text-center md:text-left">
               "রমাদানের এই পবিত্র মাসে আসুন আমরা মন থেকে প্রতিজ্ঞা করি যতটুকু সম্ভব পথশিশু, গরিব-দুঃখীর পাশে দাঁড়াই। তাদের জন্যই তো আমাদের অস্তিত্বের মানে! নিজ থেকে ছোট হলেও কোনো উদ্যোগ নেই তবু সেই সামান্য প্রচেষ্টাই হতে পারে তাদের কাছে বিরাট কিছু! আসুন, আমরা প্রত্যেকে নিজের জায়গা থেকে কিছু করি, পরিবর্তনটা শুরু হোক আমাদের হাত ধরেই!"
             </p>
-            <div className="w-24 h-1 bg-yellow-500/50 rounded-full mt-4 mx-auto md:mx-0"></div>
+            <div className="w-24 h-1 bg-amber-500/50 rounded-full mt-4 mx-auto md:mx-0"></div>
           </div>
         </div>
       </div>
 
       {/* Hero Section */}
-      <header className="bg-emerald-600 text-white relative overflow-hidden">
+      <header className="bg-zinc-800 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-10"></div>
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10 text-center">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="inline-block p-4 bg-emerald-500/30 rounded-full mb-6 backdrop-blur-sm"
+            className="inline-block p-4 bg-zinc-700/50 rounded-full mb-6 backdrop-blur-sm"
           >
-            <Moon className="w-12 h-12 text-yellow-300 fill-yellow-300" />
+            <Moon className="w-12 h-12 text-amber-400 fill-amber-400" />
           </motion.div>
           
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight text-white">
             কুমিল্লা ইফতার ট্র্যাকার ২০২৬
           </h1>
-          <p className="text-emerald-100 text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-zinc-300 text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
             কুমিল্লার সকল মসজিদের ইফতার আয়োজনের তথ্য এক ঠিকানায়। আপনার এলাকার মসজিদের তথ্য দিয়ে সাহায্য করুন।
           </p>
 
@@ -139,22 +163,24 @@ function App() {
               placeholder="মসজিদ বা এলাকা খুঁজুন..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-4 px-6 pr-12 rounded-full text-gray-800 shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-400/50 transition-shadow"
+              className="w-full py-4 pl-6 pr-16 rounded-full text-zinc-800 shadow-lg focus:outline-none focus:ring-4 focus:ring-zinc-500/30 transition-shadow bg-white"
             />
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-500 hover:bg-amber-600 text-white p-2.5 rounded-full transition-colors shadow-md">
+              <Search className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </header>
 
       {/* Map Section */}
       <section className="container mx-auto px-4 -mt-10 relative z-20 mb-12">
-        <div className="bg-white p-4 rounded-2xl shadow-xl">
+        <div className="bg-white p-4 rounded-2xl shadow-xl border border-zinc-100">
           <div className="flex items-center justify-between mb-4 px-2">
-            <h2 className="text-xl font-bold text-emerald-900 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-emerald-600" />
+            <h2 className="text-xl font-bold text-zinc-800 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-zinc-600" />
               ইফতার ম্যাপ
             </h2>
-            <button className="text-sm text-emerald-600 hover:underline font-medium">
+            <button className="text-sm text-zinc-500 hover:text-zinc-800 hover:underline font-medium">
               ম্যাপ লুকান
             </button>
           </div>
@@ -166,13 +192,17 @@ function App() {
       <section className="container mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-1.5 h-8 bg-yellow-400 rounded-full"></div>
-            <h2 className="text-2xl md:text-3xl font-bold text-emerald-900">
+            <div className="w-1.5 h-8 bg-amber-500 rounded-full"></div>
+            <h2 className="text-2xl md:text-3xl font-bold text-zinc-800">
               জনপ্রিয় ইফতার আয়োজন
             </h2>
           </div>
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
-            <span className="text-xl">+</span> নতুন তথ্য যোগ করুন
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-zinc-800 hover:bg-zinc-900 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            নতুন তথ্য যোগ করুন
           </button>
         </div>
 
@@ -188,34 +218,34 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-emerald-900 text-white py-12 border-t border-emerald-800">
+      <footer className="bg-zinc-900 text-white py-12 border-t border-zinc-800">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
-              <h3 className="text-2xl font-bold mb-2 text-yellow-400">কুমিল্লা ইফতার ট্র্যাকার</h3>
-              <p className="text-emerald-200/80 max-w-md">
+              <h3 className="text-2xl font-bold mb-2 text-amber-400">কুমিল্লা ইফতার ট্র্যাকার</h3>
+              <p className="text-zinc-400 max-w-md">
                 আমাদের লক্ষ্য কুমিল্লার প্রতিটি মানুষের কাছে সঠিক ইফতারের তথ্য পৌঁছে দেওয়া। আপনার ছোট একটি তথ্য হতে পারে অন্যের জন্য অনেক বড় সাহায্য।
               </p>
             </div>
             
-            <div className="bg-emerald-800/50 p-6 rounded-xl border border-emerald-700/50 backdrop-blur-sm">
+            <div className="bg-zinc-800/50 p-6 rounded-xl border border-zinc-700/50 backdrop-blur-sm">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center font-bold text-emerald-900 text-xl">
+                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center font-bold text-white text-xl">
                   MI
                 </div>
                 <div>
                   <h4 className="font-bold text-lg">মইনুল ইসলাম</h4>
-                  <p className="text-emerald-300 text-xs tracking-widest uppercase">Moinul Islam</p>
+                  <p className="text-zinc-400 text-xs tracking-widest uppercase">Moinul Islam</p>
                 </div>
               </div>
-              <p className="text-emerald-100 text-sm italic mb-4">
+              <p className="text-zinc-300 text-sm italic mb-4">
                 "কোনো সমস্যা বা বাগ খুঁজে পেলে সরাসরি আমাকে জানান, আপনার মতামত আমাদের এগিয়ে যেতে সাহায্য করবে।"
               </p>
               <a 
                 href="https://www.facebook.com/yourspidermen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-white text-emerald-900 py-3 rounded-lg font-bold hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-white text-zinc-900 py-3 rounded-lg font-bold hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2"
               >
                 <MessageCircle className="w-5 h-5" />
                 ফেসবুকে মেসেজ দিন →
@@ -223,7 +253,7 @@ function App() {
             </div>
           </div>
           
-          <div className="mt-12 pt-8 border-t border-emerald-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-emerald-400">
+          <div className="mt-12 pt-8 border-t border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
             <p>© ২০২৬ কুমিল্লা ইফতার ট্র্যাকার | সর্বস্বত্ব সংরক্ষিত</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition-colors">প্রাইভেসি পলিসি</a>
@@ -232,6 +262,12 @@ function App() {
           </div>
         </div>
       </footer>
+
+      <AddMosqueModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onAdd={handleAddMosque}
+      />
     </div>
   );
 }
