@@ -1,0 +1,5 @@
+{
+  "name": "Cumilla Iftar Voting",
+  "description": "A voting app to decide if Cumilla will give Iftar, powered by Supabase.",
+  "requestFramePermissions": []
+}
