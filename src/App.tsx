@@ -43,7 +43,7 @@ function App() {
         .from('mosques')
         .select('*');
 
-      if (mosqueError) console.warn('Mosque fetch warning:', mosqueError);
+      if (mosqueError) console.warn('Mosque table not found yet, skipping DB mosques...');
       
       let allMosques = [...INITIAL_MOSQUES];
       if (dbMosques && dbMosques.length > 0) {
@@ -127,9 +127,21 @@ function App() {
         }])
         .select();
 
+      // যদি ডাটাবেস টেবিল না থাকে, তবে ক্র্যাশ না করে লোকাল স্টেটে সেভ করবে
       if (error) {
-        console.error('Supabase Insert Error:', error);
-        alert('ডাটাবেসে সেভ করতে সমস্যা হয়েছে!');
+        console.warn('Supabase Insert Error (Table missing):', error);
+        
+        const temporaryMosque = {
+          id: Date.now().toString(), // লোকাল সাময়িক আইডি
+          name: mosqueData.name,
+          location: mosqueData.location,
+          true_count: 0,
+          fake_count: 0
+        };
+        
+        setMosques(prev => [temporaryMosque, ...prev]);
+        setIsModalOpen(false); 
+        alert('সতর্কতা: ডাটাবেসে mosques টেবিল নেই! এটি শুধু সাময়িকভাবে আপনার স্ক্রিনে যোগ করা হয়েছে।');
         return;
       }
 
@@ -147,18 +159,15 @@ function App() {
     }
   };
 
-  // সার্চ এবং ভোটের উপর ভিত্তি করে সর্ট (Sort) করার লজিক
+  // বেশি ভোট পাওয়া কার্ড উপরে দেখানোর লজিক
   const filteredMosques = mosques
     .filter(m => 
       m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.location.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      // সঠিক ভোট থেকে ভুল ভোট বিয়োগ করে স্কোর বের করা হচ্ছে
       const scoreA = (a.true_count || 0) - (a.fake_count || 0);
       const scoreB = (b.true_count || 0) - (b.fake_count || 0);
-      
-      // বড় স্কোরগুলো আগে দেখাবে
       return scoreB - scoreA;
     });
 
@@ -172,7 +181,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans">
-      {/* Top Banner */}
       <div className="bg-zinc-900 text-white py-6 px-4 border-b border-zinc-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-5"></div>
         <div className="container mx-auto flex flex-col md:flex-row items-center gap-6 relative z-10">
@@ -188,7 +196,6 @@ function App() {
         </div>
       </div>
 
-      {/* Hero Section */}
       <header className="bg-zinc-800 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-10"></div>
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10 text-center">
@@ -219,7 +226,6 @@ function App() {
         </div>
       </header>
 
-      {/* Map Section */}
       <section className="container mx-auto px-4 -mt-10 relative z-20 mb-12">
         <div className="bg-white p-4 rounded-2xl shadow-xl border border-zinc-100">
           <div className="flex items-center justify-between mb-4 px-2">
@@ -232,7 +238,6 @@ function App() {
         </div>
       </section>
 
-      {/* Cards Section */}
       <section className="container mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-zinc-800">
@@ -258,7 +263,6 @@ function App() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-zinc-900 text-white py-12 border-t border-zinc-800">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
